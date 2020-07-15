@@ -1,0 +1,1 @@
+{'type': 'message_new', 'object': {'date': 1594825194, 'from_id': 285983191, 'id': 2968, 'out': 0, 'peer_id': 285983191, 'text': 'sdcsdcsd', 'conversation_message_id': 224, 'fwd_messages': [], 'important': False, 'random_id': 0, 'attachments': [], 'is_hidden': False}, 'group_id': 192188096, 'event_id': 'd5543827f0075ee5dd47c34da00be95053b482ff'}

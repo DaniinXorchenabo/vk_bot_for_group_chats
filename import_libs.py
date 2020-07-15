@@ -5,4 +5,16 @@ from vk_api.bot_longpoll import (
     VkBotEvent,
     VkBotEventType
 )
+from multiprocessing import Pool, Queue, cpu_count, Lock
+from time import sleep
+import multiprocessing as mp
 
+
+processes_count = cpu_count()
+
+
+
+
+def ffff(n_msg, text='none text'):
+    n_msg.put(text)
+    sleep(0.1)
