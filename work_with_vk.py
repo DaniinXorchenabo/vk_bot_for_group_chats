@@ -15,7 +15,6 @@ class VkBot():
         cls.lock = lock
         cls.vk_session = VkApi(token=cfg.get("vk", "token"))
         longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
-
         cls.listen_events(longpoll, n_msg=n_msg)
 
     @classmethod
@@ -65,3 +64,7 @@ class WorkWithMessenges():
     @staticmethod
     def processing_msg(event):
         print('пришло сообщение с текстом:', event)
+        if type(event) == dict:
+            text = event['object']['text']
+            group_id = event['group_id']
+
