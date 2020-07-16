@@ -1,10 +1,4 @@
 from pony.orm import *
-from os import getcwd, chdir
-from os.path import (
-    join as os_join,
-    isfile
-)
-from settings.config import cfg
 
 
 db = Database()
@@ -12,20 +6,20 @@ db = Database()
 
 class Words(db.Entity):
     id = PrimaryKey(int, auto=True)
-    word = Optional(str)
+    word = Optional(str, default="")
     key = Set('Words', reverse='val')
     val = Set('Words', reverse='key')
     vals_dict = Optional(Json)  # dict(str, [int])  (ключевое слово: количество повторений)
-    len_vals = Optional(int)  # количество ключевых слов
-    count_vals = Optional(int)  # кол-во встречающихся слов
+    len_vals = Optional(int, default=0)  # количество ключевых слов
+    count_vals = Optional(int, default=0)  # кол-во встречающихся слов
     start_wordss = Set('Start_words')
 
 
 class Chat(db.Entity):
     id = PrimaryKey(int, auto=True)
-    count_words = Optional(int)
+    count_words = Optional(int, default=0)
     start_words = Optional('Start_words')
-
+    
 
 class Start_words(db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -34,6 +28,14 @@ class Start_words(db.Entity):
 
 
 def is_DB_created():
+    from os import getcwd, chdir
+    from os.path import (
+        join as os_join,
+        isfile
+    )
+    from settings.config import cfg
+
+
     path = getcwd()
     if path[-3:] in ['\db', '\\db', '/db']:
         chdir(path[:-2])  # изменяем текущую директорию до директории проекта
@@ -49,8 +51,17 @@ def is_DB_created():
 is_DB_created()
 db.generate_mapping(create_tables=True)
 if __name__ == '__main__':
+    pass
+
+
+
+
+
+
+
+    '''
     with db_session:
-        if not Words.exists(word='привет'):
+        if False:
             start_w = Words(word='привет')
             commit()
             second_w1 = Words(word='Вова', key=start_w)
@@ -67,4 +78,4 @@ if __name__ == '__main__':
     with db_session:
         data = Words.get(word='привет')
         #print(data.word, [i.word for i in data.key], [f'{str(i.word)} ' + str([j.word for j in i.key]) + ' '+ str([str(j.word) +' !!' + str([c.word for c in j.key]) + " !!" for j in i.val]) for i in data.val])
-
+    '''
