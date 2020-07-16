@@ -1,4 +1,11 @@
 from pony.orm import *
+from os import getcwd, chdir
+from os.path import (
+    join as os_join,
+    isfile
+)
+from settings.config import cfg
+
 
 db = Database()
 
@@ -26,12 +33,22 @@ class Start_words(db.Entity):
     words = Set(Words)
 
 
+def is_DB_created():
+    path = getcwd()
+    if path[-3:] in ['\db', '\\db', '/db']:
+        chdir(path[:-2])  # изменяем текущую директорию до директории проекта
+    path = getcwd()
+    name_db = cfg.get("db", "name")
+    if not isfile(os_join(path, "db", name_db)):
+        db.bind(provider=cfg.get("db", "type"), filename=name_db, create_db=True)
+        print('create db')
+    else:
+        db.bind(provider=cfg.get("db", "type"), filename=name_db)
 
 
+is_DB_created()
+db.generate_mapping(create_tables=True)
 if __name__ == '__main__':
-
-    db.bind(provider='sqlite', filename='test.sqlite', create_db=True)
-    db.generate_mapping(create_tables=True)
     with db_session:
         if not Words.exists(word='привет'):
             start_w = Words(word='привет')
