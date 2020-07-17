@@ -5,26 +5,30 @@ db = Database()
 
 
 class Words(db.Entity):
-    id = PrimaryKey(int, auto=True)
-    word = Optional(str, default="")
-    key = Set('Words', reverse='val')
-    val = Set('Words', reverse='key')
+    chat_id = Required(int, default=0)
+    word = Required(str, default="")
+    key = Set('Words', reverse='val', default=lambda: [])
+    val = Set('Words', reverse='key', default=lambda: [])
     vals_dict = Optional(Json)  # dict(str, [int])  (ключевое слово: количество повторений)
     len_vals = Optional(int, default=0)  # количество ключевых слов
     count_vals = Optional(int, default=0)  # кол-во встречающихся слов
-    start_wordss = Set('Start_words')
-
+    start_words = Set('StartWords', default=lambda: [])
+    PrimaryKey(chat_id, word)
 
 class Chat(db.Entity):
     id = PrimaryKey(int, auto=True)
     count_words = Optional(int, default=0)
-    start_words = Optional('Start_words')
-    
+    startwords = Optional('StartWords')
 
-class Start_words(db.Entity):
-    id = PrimaryKey(int, auto=True)
+
+class StartWords(db.Entity):
+    chat_id = Required(int, default=0)
+    word = Required(str, unique=True, sql_default='""')
     chat = Optional(Chat)
-    words = Set(Words)
+    words = Set(Words, default=lambda: [])
+    len_vals = Optional(int, default=0)  # количество ключевых слов
+    count_vals = Optional(int, default=0)  # кол-во встречающихся слов
+    PrimaryKey(chat_id, word)
 
 
 def is_DB_created():
@@ -43,13 +47,19 @@ def is_DB_created():
     name_db = cfg.get("db", "name")
     if not isfile(os_join(path, "db", name_db)):
         db.bind(provider=cfg.get("db", "type"), filename=name_db, create_db=True)
+        db.generate_mapping(create_tables=True)
         print('create db')
     else:
         db.bind(provider=cfg.get("db", "type"), filename=name_db)
+        try:
+            db.generate_mapping()
+        except Exception as e:
+            print('при создании бд произошла какая-то ошибка (видимо, структура БД была изменена)\n', e)
+            print('попытка исправить.....')
+            db.generate_mapping(create_tables=True)
 
 
 is_DB_created()
-db.generate_mapping(create_tables=True)
 if __name__ == '__main__':
     pass
 
