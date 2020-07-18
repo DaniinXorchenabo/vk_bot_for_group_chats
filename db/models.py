@@ -5,14 +5,14 @@ db = Database()
 
 
 class Words(db.Entity):
-    chat_id = Required(int, default=0)
-    word = Required(str, default="")
-    key = Set('Words', reverse='val', default=lambda: [])
-    val = Set('Words', reverse='key', default=lambda: [])
+    chat_id = Required(int)
+    word = Required(str)
+    key = Set('Words', reverse='val')  # , default=lambda: []
+    val = Set('Words', reverse='key')
     vals_dict = Optional(Json)  # dict(str, [int])  (ключевое слово: количество повторений)
     len_vals = Optional(int, default=0)  # количество ключевых слов
     count_vals = Optional(int, default=0)  # кол-во встречающихся слов
-    start_words = Set('StartWords', default=lambda: [])
+    start_words = Set('StartWords')
     PrimaryKey(chat_id, word)
 
 class Chat(db.Entity):
@@ -22,10 +22,10 @@ class Chat(db.Entity):
 
 
 class StartWords(db.Entity):
-    chat_id = Required(int, default=0)
-    word = Required(str, unique=True, sql_default='""')
+    chat_id = Required(int)
+    word = Required(str)
     chat = Optional(Chat)
-    words = Set(Words, default=lambda: [])
+    words = Set(Words)
     len_vals = Optional(int, default=0)  # количество ключевых слов
     count_vals = Optional(int, default=0)  # кол-во встречающихся слов
     PrimaryKey(chat_id, word)
