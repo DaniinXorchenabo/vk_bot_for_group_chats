@@ -2,3 +2,5 @@
 
   pip install config
   pip install vk-api
+
+https://editor.ponyorm.com/user/DaniinXorchenabo/DB_for_Markov_chains/designer - модель БД
