@@ -1,5 +1,6 @@
 from db.models import *
 from random import randint
+from collections import Counter
 
 
 class DbControl():
@@ -27,7 +28,7 @@ class DbControl():
     @classmethod
     def calls_processing(cls):
         # если приоритетная очередь пуста, то читаем данные из второстепенной
-        type_ev, request = (cls.calls_q_sec.get() if cls.calls_q_pr else cls.calls_q_pr.get())
+        type_ev, request = (cls.calls_q_sec.get() if cls.calls_q_pr.empty() else cls.calls_q_pr.get())
         if type_ev == 'new_words':
             cls.new_msg_processing(*request)  # id_chat, text_msg
         elif type_ev == '/gen':
@@ -67,28 +68,30 @@ class DbControl():
 
     @db_session
     @classmethod
-    def new_msg_processing(cls, id_chat, text_msg: list):  # text_msg  =  [(firs_w, val, {word: {word_val: count, ...}, ...}), ...]
+    def new_msg_processing(cls, id_chat, text_msg: list):
+        # text_msg  =  [({start_w: {val: count, ...}, ...} {word: {word_val: count, ...}, ...}), ...]
         if not Chat.exists(id=id_chat):
             Chat(id=id_chat)
             flush()
 
         chat_now = Chat[id_chat]
-        for [firs_w, rel, part] in text_msg:
-            st_w = StartWords.get(chat_id=id_chat, word=firs_w)  # None, if notFound
+        text_msg = ((StartWords, text_msg[0], {'chat': Chat[id_chat]}), (Words, text_msg[1], {}))
+        for [entity, part, other_params] in text_msg:
             chat_now.count_words += 1 + len(part)
-            if not st_w:
-                st_w = StartWords(chat_id=id_chat, word=firs_w, chat=Chat[id_chat])
-            [Words(chat_id=id_chat, word=w) for w in part.keys() if not Words.exists(chat_id=id_chat, word=w)]
+            [entity(chat_id=id_chat, word=w,
+                    **other_params) for w in part.keys() if not entity.exists(chat_id=id_chat, word=w)]
             flush()
-            st_w.words = arr = set(st_w.words + [Words[id_chat, rel]])
-            st_w.len_vals = len(arr)
-            st_w.count_vals += 1
             for key, vals in part.items():
-                w = Words[id_chat, key]
-                w.val = arr = set(w.val + [Words[id_chat, w_val] for w_val in vals.keys()])
+                w = entity[id_chat, key]
+                w.val = arr = set(w.val + [entity[id_chat, w_val] for w_val in vals.keys()])
                 w.len_vals = len(arr)
-                w.count_vals += len(vals)
+                w.count_vals += sum(vals.values())
+                w.vals_dict = Counter(w.vals_dict) + w.vals_dict(vals)
         commit()
+        show(StartWords)
+        print('--------------------------------------')
+        show(Words)
+
 
     @db_session
     @classmethod

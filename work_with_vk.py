@@ -46,6 +46,7 @@ class VkBot():
         cls.secondary_res_db = secondary_res_db
         cls.vk_session = VkApi(token=cfg.get("vk", "token"))
         longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
+        print('vk bot started!')
         cls.listen_events(longpoll, n_msg=n_msg)
 
     @classmethod
@@ -56,7 +57,7 @@ class VkBot():
                     cls.processing_event(ev, n_msg=n_msg)
                 cls.sending_msg_queue_processing()
             except Exception as e:
-                print("произошла неизвестная ошибка", e)
+                print("произошла неизвестная ошибка в классе", cls.__name__, e)
 
     @classmethod
     def processing_event(cls, event, n_msg=None):
@@ -65,20 +66,29 @@ class VkBot():
             print('новое сообщение', type(event.raw), event.raw)
             if not cls.obj_dict.get(event.object.peer_id):
                 cls.obj_dict[event.object.peer_id] = cls()
-
+            print('d1')
             if WorkWithMessenges.qu_ans_test(event.object.text):
+                print('d2')
+
                 cls.sending_msg.put('func',
                                     [cls.send_msg,
                                      [WorkWithMessenges.random_answ()],
                                      cls.generate_answ_dict(event.raw)])
             else:
+                print('d3')
+
                 event_d = dict(event.raw)
+                print('d3 5')
                 event_d.update({'callback_func': cls.send_msg,
                                 "args": [],
                                 "kwargs": cls.generate_answ_dict(event_d)
                                 })
+                print('d3 6')
                 n_msg.put(event_d)
+                print('d3 7')
                 if not cls.processing_event_live:  # если обработка не запущена
+                    print('d4')
+
                     cls.processing_event_live = True
                     cls.processong_msg_class_start(n_msg)
 
@@ -94,11 +104,15 @@ class VkBot():
 
     # ==========! send msg !==========
     @classmethod
-    def generate_answ_dict(cls, _dict):
+    def generate_answ_dict(cls, _dict: dict):
+        print('d 3 5 1')
         nested_dict = []
         standart_d = {key: ((val, nested_dict.append(key))[0] if type(val) == dict else val)
-                      for key, val in _dict if key in list_keys}
+                      for key, val in _dict.items() if key in list_keys}
+        print('d 3 5 2')
+
         [standart_d.update(cls.generate_answ_dict(_dict[key])) for key in nested_dict]
+        print('d 3 5 3')
         return standart_d
 
     @classmethod
@@ -231,4 +245,5 @@ class WorkWithMessenges():
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
             start_w_dict[part[0]] = start_w_dict.get(part[0], Counter()) + Counter({part[1]: 1})
+            _dict[part[-1]] = start_w_dict.get(part[-1], Counter())
         return [start_w_dict, _dict]
