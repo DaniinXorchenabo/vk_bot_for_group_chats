@@ -6,7 +6,7 @@ from vk_api.bot_longpoll import (
     VkBotEventType
 )
 from multiprocessing import Pool, Queue, cpu_count, Lock, Manager
-from time import sleep
+from time import sleep, ctime
 import multiprocessing as mp
 from random import randint
 from collections import defaultdict

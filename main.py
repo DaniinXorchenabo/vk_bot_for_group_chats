@@ -16,7 +16,7 @@ def error_callback_func(*args, **kwargs):
 
 
 if __name__ == '__main__':
-    print("Number of cpu : ", cpu_count())
+    print("Number of cpu : ", cpu_count(), print(ctime()))
     pool = Pool(processes=processes_count)
     new_msg = Manager().Queue()  # [dict(), ...]  тексты сообщений из бота в обработку
 

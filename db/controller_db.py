@@ -1,6 +1,7 @@
 from db.models import *
 from random import randint
 from collections import Counter
+from time import sleep, ctime
 
 
 class DbControl():
@@ -27,7 +28,7 @@ class DbControl():
             if not cls.calls_q_pr.empty() or not cls.calls_q_sec.empty():
                 cls.calls_processing(**kwargs)
             else:
-                cls.run = False
+                sleep(0.1)
 
     @classmethod
     def calls_processing(cls, **kwargs):
@@ -113,8 +114,8 @@ class DbControl():
                 w.vals_dict = dict(Counter(w.vals_dict) + Counter(vals))
                 # print('end pr')
         commit()
-        show(StartWords)
-        # print('--------------------------------------')
+        #show(StartWords)
+        print('end write in DB--------------------------------------', print(ctime()))
 
 
 

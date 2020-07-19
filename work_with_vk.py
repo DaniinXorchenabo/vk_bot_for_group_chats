@@ -187,7 +187,8 @@ class WorkWithMessenges():
         if not kwargs['n_msg'].empty():
             cls.processing_msg(kwargs['n_msg'].get(), **kwargs)
         else:
-            cls.run = False
+            sleep(0.1)
+            #cls.run = False
 
     @classmethod
     def processing_msg(cls, event, **f_kwargs):
@@ -230,16 +231,19 @@ class WorkWithMessenges():
         if type(text) == list:
             text = ' '.join(text)
         _dict = dict()
-        start_w_dict = dict()
+        start_w_dict = dict()  # #@*`~
         for part in (part.split() for part in
-                     iter(re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})',
-                                 r'\1 \2 \3#@*`~',
-                                 text.lower()).split('#@*`~')) if len(part.split()) > 0):
+                     iter(re_sub(r'()([.!?\n]{1,})',
+                                 r'\1 \2 #@*`~', re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})',
+                                                        r'\1 \2 \3',
+                                                        text.lower())).split('#@*`~')) if len(part.split()) > 0):
             # print(part)
+            if len(part) == 1:
+                part += ['.']
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
             start_w_dict[part[0]] = start_w_dict.get(part[0], Counter()) + Counter({part[1]: 1})
             _dict[part[-1]] = start_w_dict.get(part[-1], Counter())
-        # print('start_w_dict', start_w_dict)
-        # print("_dict", _dict)
+        print('start_w_dict', start_w_dict)
+        print("_dict", _dict)
         return [start_w_dict, _dict]
