@@ -19,6 +19,7 @@ from  multiprocessing import AuthenticationError
 
 processes_count = cpu_count()
 
+
 import nltk
 #nltk.download('punkt')
 import pymorphy2
@@ -37,6 +38,8 @@ text = """
 Надія.
 Даниіл. Вітання від Даниіла. Иван Родина Москва Калуга Сочи Брест Волга
 """.lower()
+
+
 # print(re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})', r'\1 \2 \3#@*`~', text).split('#@*`~'))  # [^.,!:;?«» ]
 #print(re_split(r'[.,!:?;«»\n](\s)', text))  # [^.,!:;?«» ]
 

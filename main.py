@@ -1,15 +1,18 @@
 from work_with_vk import *
 
-kwargs_for_classws = dict()
+
 by_ended_process = set()  # список неактивных процессов
+
+
 def callback_func(*args, **kwargs):
     by_ended_process.add(args[0])
     print("callback_func", str(args[0].__repr__()).split()[2], kwargs)
     print(*[(key, val.empty()) for key, val in kwargs_for_classws.items() if type(val) == type(Manager().Queue())])
 
+
 def error_callback_func(*args, **kwargs):
     print('---------------------------------')
-    print('error_callback_func',)
+    print('error_callback_func', )
     print(args)
     print(kwargs)
     print('---------------------------------')
@@ -38,7 +41,7 @@ if __name__ == '__main__':
                           'sending_msg': sending_msg,
                           'priority_rec_db': priority_rec_db,
                           'secondary_res_db': secondary_res_db,
-                          'turn_on_proc': turn_on_process_please,}
+                          'turn_on_proc': turn_on_process_please, }
     args = []
     data_for_apply_async = {'args': args,
                             "kwds": kwargs_for_classws,

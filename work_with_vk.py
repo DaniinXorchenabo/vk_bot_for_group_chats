@@ -17,7 +17,7 @@ list_keys = ['user_id', "random_id", "peer_id", "domain",
 HIGH_PRIORITY_SIGNAL = ['/stat', '/erease', "/gen", 'ask_bot']
 LOW_PRIORITY_SIGNAL = ["new_words"]
 
-COMANDS = ['/stat', '/erease', "/gen", "/kw", "/no_kw"]
+COMANDS = ['/stat', '/erease', "/gen", "/kw", "/no_kw", '/help']
 
 
 class VkBot():
@@ -28,9 +28,11 @@ class VkBot():
     В другом потоке:
             отправка сообщений пользователю"""
 
+    DBless_comands = ["/kw", "/no_kw", '/help']  # команды, не требующие участия БД
     vk_session = None
     run = False
     obj_dict = dict()  # dict(id_chat: VkBot)
+    TEXT_HELP_COMANDS = ''
 
     # !!! часть класса, отвечающая за прием события !!!
     @classmethod
@@ -54,11 +56,12 @@ class VkBot():
     def processing_event(cls, event, **kwargs):
         # print('something event', event)
         if event.type == VkBotEventType.MESSAGE_NEW:
-            if WorkWithMessenges.qu_ans_test(event.object.text):
-                kwargs['sending_msg'].put(('func',
-                                           [cls.send_msg,
-                                            [WorkWithMessenges.random_answ()],
-                                            cls.generate_answ_dict(event.raw)]))
+            text = event.object.text
+            if WorkWithMessenges.qu_ans_test(text):
+                cls.send_q('func', [cls.send_msg, [WorkWithMessenges.random_answ()],
+                                    cls.generate_answ_dict(event.raw)], **kwargs)
+            elif event.object.text in cls.DBless_comands:
+                cls.send_q('func', [cls.proc_DBless_msg, [text], event.raw], **kwargs)
             else:
                 event_d = dict(event.raw)
                 event_d.update({'callback_func': cls.send_msg,
@@ -69,10 +72,14 @@ class VkBot():
                 cls.processong_msg_class_start(**kwargs)
 
     # ==========! work with other classes !==========
-    @classmethod
+    @classmethod  # запрос на включение потока с обработкой сообщений
     def processong_msg_class_start(cls, **kwargs):
         kwargs['turn_on_proc'].put((WorkWithMessenges.start, dict()))  # {'kwds': 'kwargs'}
         # print('запуск WorkWithMessenges.start')
+
+    @classmethod
+    def send_q(cls, type_m, other: list, *args, **kwargs):
+        kwargs['sending_msg'].put((type_m, other))
 
     # !!! часть класса, отвечающая за отправку сообщений !!!
     @classmethod
@@ -81,6 +88,7 @@ class VkBot():
             cls.run = True
             cls.vk_session = VkApi(token=cfg.get("vk", "token"))
             kwargs['turn_on_proc'].put((cls.listen_events, dict()))
+            cls.TEXT_HELP_COMANDS = cls.get_help_comand()
             cls.sending_msg_queue_processing(**kwargs)
         except Exception as e:
             print('произошла какая-то ошибка в клсаае', cls.__name__, '(start):', e)
@@ -88,44 +96,35 @@ class VkBot():
 
     # ==========! send msg !==========
     @classmethod
-    def generate_answ_dict(cls, _dict: dict, func=lambda i: True):
-        nested_dict = []
-        standart_d = {key: val for key, val in _dict.items()
-                      if not(type(val) == dict and nested_dict.append(key)) and key in list_keys and func(val)}
-        # print('standart_d', standart_d)
-        [standart_d.update(cls.generate_answ_dict(_dict[key])) for key in nested_dict]
-        # print('standart_d', standart_d)
-        return standart_d
-
-    @classmethod
     def sending_msg_queue_processing(cls, **kwargs_f):
         while True:
-            #print('-sending_msg_queue_processing')
             if not kwargs_f['sending_msg'].empty():
                 print('---------------new msg get!!!!!!!')
                 _type, material = kwargs_f['sending_msg'].get()
                 if _type == 'func':
                     func, args, kwargs = material
-                    # print('\nkwargs in sending_msg_queue_processing', kwargs, '\n')
-                    if kwargs.get('peer_id', None):
-                        # print(' kwargs.get(peer_id) существует')
-                        if not cls.obj_dict.get(kwargs.get('peer_id')):
-                            # print('сейчас будет внесение нового класса вк бота в словарь')
-                            cls.obj_dict[kwargs.get('peer_id')] = cls()
+                    if kwargs.get('peer_id', None) and not cls.obj_dict.get(kwargs.get('peer_id')):
+                        cls.obj_dict[kwargs.get('peer_id')] = cls()
                     kwargs.pop('callback_func', None)
-                    # print('запуск пришедшей функции', func, args, kwargs)
                     func(*args, **kwargs)
-            sleep(0.1)
+            else:
+                sleep(0.1)
 
     @classmethod
     def send_msg(cls, text, *args, **kwargs):
-        # print('send msg started')
-        msg = cls.constructor_msg(text, **kwargs)
-        # print('d1 --- ')
-        msg = cls.generate_answ_dict(msg, func=lambda i: type(i) != dict)
-        # print('\nсообщение отправляется', msg, '\n')
+        msg = cls.generate_answ_dict(cls.constructor_msg(text, **kwargs), func=lambda i: type(i) != dict)
         cls.vk_session.method("messages.send", msg)
-        # print('\n\t\t\tСообщение отправлено!!!', msg, '\n')
+
+    # ==========! обработка сообщений !==========
+    @classmethod
+    def generate_answ_dict(cls, _dict: dict, func=lambda i: True):
+        nested_dict = []
+        standart_d = {key: val for key, val in _dict.items()
+                      if not (type(val) == dict and nested_dict.append(key)) and key in list_keys and func(val)}
+        # print('standart_d', standart_d)
+        [standart_d.update(cls.generate_answ_dict(_dict[key])) for key in nested_dict]
+        # print('standart_d', standart_d)
+        return standart_d
 
     @classmethod
     def constructor_msg(cls, text, **kwargs):
@@ -134,14 +133,24 @@ class VkBot():
         if type(text) != str:
             text = str(text)
         text = re_sub(r'(\s{1,})[.,!:;]', '', text)
-        # print('8878787878787')
-        # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
         if kwargs.get('peer_id', None) and  cls.obj_dict.get(kwargs.get('peer_id')):
+            # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
             kwargs.update(cls.obj_dict[kwargs['peer_id']].unical_dict)
-        kwargs.update({"message": text,
-                       'random_id': randint(1, 2147483647),
-                       })
+        kwargs.update({"message": text, 'random_id': randint(1, 2147483647)})
         return kwargs
+
+    #==========! Распределение сообщений по типам для ответа на них (для не требующих контакта с БД) !==========
+    @classmethod
+    def proc_DBless_msg(cls, msg, *args, **kwargs):
+        if msg == '/help':
+            cls.send_msg(cls.TEXT_HELP_COMANDS, *args, **kwargs)
+
+
+
+    @staticmethod
+    def get_help_comand():
+        with open('settings/comands.txt', 'r', encoding='utf-8') as f:
+            return f.read()
 
     # ==========! No classmethod !==========
     def __init__(self):
