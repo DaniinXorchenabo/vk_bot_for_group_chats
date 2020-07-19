@@ -115,6 +115,7 @@ class VkBot():
                     kwargs.pop('callback_func', None)
                     # print('запуск пришедшей функции', func, args, kwargs)
                     func(*args, **kwargs)
+            sleep(0.1)
 
     @classmethod
     def send_msg(cls, text, *args, **kwargs):

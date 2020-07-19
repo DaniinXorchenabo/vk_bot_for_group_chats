@@ -72,8 +72,9 @@ if __name__ == '__main__':
                     print(': запустили процесс')
                 else:
                     print("процесс уже работает")
-                    # print('вызов .ready() к процессу', obj_call)
 
+                    # print('вызов .ready() к процессу', obj_call)
+            sleep(0.1)
             # if not sending_msg.empty():
             #     _type, material = sending_msg.get()
             #     if _type == 'func':

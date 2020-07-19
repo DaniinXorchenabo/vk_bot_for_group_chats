@@ -122,11 +122,13 @@ class DbControl():
     @classmethod
     @db_session
     def get_stat(cls, id_chat, rec, *args, **kwargs):
+        if not Chat.exists(id=id_chat):
+            Chat(id=id_chat)
+            flush()
         callback_func, m_args, m_kwargs = rec
         # print('получение /stat из БД', args)
         kwargs['sending_msg'].put(('func', (callback_func,
-                                            [f'''📝 Количество использованных слов: {Chat[id_chat].count_words}
-                                        🔢 ID чата: {id_chat}'''] + list(m_args),
+                                            [f'''📝 Количество использованных слов: {Chat[id_chat].count_words}\n🔢 ID чата: {id_chat}'''] + list(m_args),
                                    m_kwargs)))
 
 
@@ -134,6 +136,9 @@ class DbControl():
     @db_session
     def erease_processing(cls, id_chat, rec, *args, **kwargs):
         callback_func, m_args, m_kwargs = rec
+        if not Chat.exists(id=id_chat):
+            Chat(id=id_chat)
+            flush()
         # print('очищение помяти БД')
         try:
             delete(w for w in Words if w.chat_id == id_chat)
