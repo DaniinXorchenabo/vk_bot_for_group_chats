@@ -59,21 +59,22 @@ class DbControl():
             ans = []
             entity = None
             while True:
-                if not entity and max_len > 0:
-                    print(chat_now.start_words)
+                if max_len < 0 and not entity:
+                    break
+                elif max_len >= 0 and not entity:
+                    # print(chat_now.start_words)
                     entity = list(chat_now.start_words)[randint(0, len(chat_now.start_words)-1)]
-                    print(entity)
+                    # print(entity)
                     if bool(ans) and ans[-1] not in list('.!?'):
                         ans.append('.')
-                else:
-                    break
+
                 ans.append(entity.word)
                 max_len -= 1
                 if max_len < -500:
                     break
-                print('*********----')
+                # print('*********----')
                 entity = (None if entity.len_vals < 1 else list(entity.val)[randint(0, len(entity.val) - 1)])
-                print('*********----', entity)
+                # print('*********----', entity)
         else:
             if not Chat.exists(id=id_chat):
                 Chat(id=id_chat)

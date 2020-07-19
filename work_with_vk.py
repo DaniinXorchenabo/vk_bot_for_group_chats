@@ -92,9 +92,9 @@ class VkBot():
         nested_dict = []
         standart_d = {key: val for key, val in _dict.items()
                       if not(type(val) == dict and nested_dict.append(key)) and key in list_keys and func(val)}
-        print('standart_d', standart_d)
+        # print('standart_d', standart_d)
         [standart_d.update(cls.generate_answ_dict(_dict[key])) for key in nested_dict]
-        print('standart_d', standart_d)
+        # print('standart_d', standart_d)
         return standart_d
 
     @classmethod
@@ -106,25 +106,25 @@ class VkBot():
                 _type, material = kwargs_f['sending_msg'].get()
                 if _type == 'func':
                     func, args, kwargs = material
-                    print('\nkwargs in sending_msg_queue_processing', kwargs, '\n')
+                    # print('\nkwargs in sending_msg_queue_processing', kwargs, '\n')
                     if kwargs.get('peer_id', None):
-                        print(' kwargs.get(peer_id) существует')
+                        # print(' kwargs.get(peer_id) существует')
                         if not cls.obj_dict.get(kwargs.get('peer_id')):
-                            print('сейчас будет внесение нового класса вк бота в словарь')
+                            # print('сейчас будет внесение нового класса вк бота в словарь')
                             cls.obj_dict[kwargs.get('peer_id')] = cls()
                     kwargs.pop('callback_func', None)
-                    print('запуск пришедшей функции', func, args, kwargs)
+                    # print('запуск пришедшей функции', func, args, kwargs)
                     func(*args, **kwargs)
 
     @classmethod
     def send_msg(cls, text, *args, **kwargs):
-        print('send msg started')
+        # print('send msg started')
         msg = cls.constructor_msg(text, **kwargs)
-        print('d1 --- ')
+        # print('d1 --- ')
         msg = cls.generate_answ_dict(msg, func=lambda i: type(i) != dict)
-        print('\nсообщение отправляется', msg, '\n')
+        # print('\nсообщение отправляется', msg, '\n')
         cls.vk_session.method("messages.send", msg)
-        print('\n\t\t\tСообщение отправлено!!!', msg, '\n')
+        # print('\n\t\t\tСообщение отправлено!!!', msg, '\n')
 
     @classmethod
     def constructor_msg(cls, text, **kwargs):
@@ -133,7 +133,7 @@ class VkBot():
         if type(text) != str:
             text = str(text)
         text = re_sub(r'(\s{1,})[.,!:;]', '', text)
-        print('8878787878787')
+        # print('8878787878787')
         # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
         if kwargs.get('peer_id', None) and  cls.obj_dict.get(kwargs.get('peer_id')):
             kwargs.update(cls.obj_dict[kwargs['peer_id']].unical_dict)
@@ -235,11 +235,11 @@ class WorkWithMessenges():
                      iter(re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})',
                                  r'\1 \2 \3#@*`~',
                                  text.lower()).split('#@*`~')) if len(part.split()) > 0):
-            print(part)
+            # print(part)
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
             start_w_dict[part[0]] = start_w_dict.get(part[0], Counter()) + Counter({part[1]: 1})
             _dict[part[-1]] = start_w_dict.get(part[-1], Counter())
-        print('start_w_dict', start_w_dict)
-        print("_dict", _dict)
+        # print('start_w_dict', start_w_dict)
+        # print("_dict", _dict)
         return [start_w_dict, _dict]
