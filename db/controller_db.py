@@ -39,14 +39,13 @@ class DbControl():
             # print('&&&&&&&&^^^^^^^^^^^', request)
             cls.new_msg_processing(*request, **kwargs)  # id_chat, text_msg
         elif type_ev == '/gen':
-            cls.generate_new_msg(*request, **kwargs)  #id_chat, callback_func, [args], dict(kwargs)
+            cls.generate_new_msg(*request, **kwargs)  # id_chat, callback_func, [args], dict(kwargs)
 
         elif type_ev == '/stat':
             # print('^^^^^^^^^^^&&&&&&&&^^^^^^^^^^^', request)
-            cls.get_stat(*request, **kwargs)  #id_chat, callback_func, [args], dict(kwargs)
+            cls.get_stat(*request, **kwargs)  # id_chat, callback_func, [args], dict(kwargs)
         elif type_ev == '/erease':
-            cls.erease_processing(*request, **kwargs)  #id_chat, callback_func, [args], dict(kwargs)
-
+            cls.erease_processing(*request, **kwargs)  # id_chat, callback_func, [args], dict(kwargs)
 
     @classmethod
     @db_session
@@ -64,7 +63,7 @@ class DbControl():
                     break
                 elif max_len >= 0 and not entity:
                     # print(chat_now.start_words)
-                    entity = list(chat_now.start_words)[randint(0, len(chat_now.start_words)-1)]
+                    entity = list(chat_now.start_words)[randint(0, len(chat_now.start_words) - 1)]
                     # print(entity)
                     if bool(ans) and ans[-1] not in list('.!?'):
                         ans.append('.')
@@ -79,11 +78,9 @@ class DbControl():
         else:
             if not Chat.exists(id=id_chat):
                 Chat(id=id_chat)
-                #flush()
+                # flush()
             ans = 'Я не могу писать, если не знаю слов :c'
         kwargs['sending_msg'].put(('func', [callback_func, [ans] + m_args, m_kwargs]))
-
-
 
     @classmethod
     @db_session
@@ -109,15 +106,13 @@ class DbControl():
                 # print('$$$$')
                 w.len_vals = len(arr)
                 w.count_vals += sum(vals.values())
-                #print(')))))')
+                # print(')))))')
                 chat_now.count_words += sum(vals.values())
                 w.vals_dict = dict(Counter(w.vals_dict) + Counter(vals))
                 # print('end pr')
         commit()
-        #show(StartWords)
+        # show(StartWords)
         print('end write in DB--------------------------------------', print(ctime()))
-
-
 
     @classmethod
     @db_session
@@ -128,9 +123,9 @@ class DbControl():
         callback_func, m_args, m_kwargs = rec
         # print('получение /stat из БД', args)
         kwargs['sending_msg'].put(('func', (callback_func,
-                                            [f'''📝 Количество использованных слов: {Chat[id_chat].count_words}\n🔢 ID чата: {id_chat}'''] + list(m_args),
-                                   m_kwargs)))
-
+                                            [f'''📝 Количество использованных слов: {Chat[
+                                                id_chat].count_words}\n🔢 ID чата: {id_chat}'''] + list(m_args),
+                                            m_kwargs)))
 
     @classmethod
     @db_session
@@ -149,9 +144,5 @@ class DbControl():
             print('произошла ошибка при очищении памяти чата', id_chat, ":", e)
             ans = 'При очищении память произошла какая-то ошибка👉🏻👈🏻😅'
         kwargs['sending_msg'].put(['func', [callback_func,
-                                   [ans] + m_args,
-                                   m_kwargs]])
-
-
-
-
+                                            [ans] + m_args,
+                                            m_kwargs]])

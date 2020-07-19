@@ -1,6 +1,5 @@
 from pony.orm import *
 
-
 db = Database()
 
 
@@ -14,6 +13,7 @@ class Words(db.Entity):
     count_vals = Optional(int, default=0)  # кол-во встречающихся слов
     vals_dict = Optional(Json)  # dict(str, [int])  (ключевое слово: количество повторений)
     PrimaryKey(chat_id, word)
+
 
 class Chat(db.Entity):
     id = PrimaryKey(int, auto=True)
@@ -41,7 +41,6 @@ def is_DB_created():
     )
     from settings.config import cfg
 
-
     path = getcwd()
     if path[-3:] in ['\db', '\\db', '/db']:
         chdir(path[:-2])  # изменяем текущую директорию до директории проекта
@@ -64,12 +63,6 @@ def is_DB_created():
 is_DB_created()
 if __name__ == '__main__':
     pass
-
-
-
-
-
-
 
     '''
     with db_session:

@@ -11,17 +11,16 @@ import multiprocessing as mp
 from random import randint
 from collections import defaultdict
 from collections import Counter
-from  re import (
+from re import (
     sub as re_sub,
     split as re_split
 )
-from  multiprocessing import AuthenticationError
+from multiprocessing import AuthenticationError
 
 processes_count = cpu_count()
 
-
 import nltk
-#nltk.download('punkt')
+# nltk.download('punkt')
 import pymorphy2
 
 # probability score threshold
@@ -39,13 +38,8 @@ text = """
 Даниіл. Вітання від Даниіла. Иван Родина Москва Калуга Сочи Брест Волга
 """.lower()
 
-
 # print(re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})', r'\1 \2 \3#@*`~', text).split('#@*`~'))  # [^.,!:;?«» ]
-#print(re_split(r'[.,!:?;«»\n](\s)', text))  # [^.,!:;?«» ]
-
-
-
-
+# print(re_split(r'[.,!:?;«»\n](\s)', text))  # [^.,!:;?«» ]
 
 
 # print(morph.parse("Иван")[0].tag)
