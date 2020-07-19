@@ -18,7 +18,7 @@ class Words(db.Entity):
 class Chat(db.Entity):
     id = PrimaryKey(int, auto=True)
     count_words = Optional(int, default=0)
-    startwords = Optional('StartWords')
+    start_words = Set('StartWords')
     keyboard = Optional(int, default=0)
 
 

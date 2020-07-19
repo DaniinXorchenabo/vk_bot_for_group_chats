@@ -15,7 +15,7 @@ from  re import (
     sub as re_sub,
     split as re_split
 )
-
+from  multiprocessing import AuthenticationError
 
 processes_count = cpu_count()
 
@@ -37,6 +37,11 @@ text = """
 Надія.
 Даниіл. Вітання від Даниіла. Иван Родина Москва Калуга Сочи Брест Волга
 """.lower()
+
+
+
+
+
 # print(morph.parse("Иван")[0].tag)
 # print(morph.parse("Брест")[0].tag)
 #

@@ -21,125 +21,122 @@ COMANDS = ['/stat', '/erease', "/gen", "/kw", "/no_kw"]
 
 
 class VkBot():
+    """Класс работает в двух потоках, как следствие
+    разделен на 2 части.
+    В одном потоке:
+            прием событий от бота
+    В другом потоке:
+            отправка сообщений пользователю"""
+
     vk_session = None
     run = False
-    msg = dict()
-    counter_msg = 0
-    pool = None  # пространство с процессами
-    processing_event_live = False
-    sending_msg = None
-    secondary_res_db = priority_rec_db = None
     obj_dict = dict()  # dict(id_chat: VkBot)
 
+    # !!! часть класса, отвечающая за прием события !!!
     @classmethod
-    def processing_event_is_live(cls, *args, **kwargs):
-        cls.processing_event_live = False
+    def listen_events(cls, longpoll=None, vk_session=None, **kwargs):
+        try:
+            print('listen_events vkBot started !')
+            cls.obj_dict = None  # для части класса, работающей в этом потоке не используется
+            cls.run = True
+            if not cls.vk_session:
+                cls.vk_session = VkApi(token=cfg.get("vk", "token"))
+            longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
 
-    @classmethod
-    def start(cls, pool=None, lock=None, n_msg=None,
-              sending_msg=None, secondary_res_db=None, priority_rec_db=None):
-        cls.run = True
-        cls.pool = pool
-        cls.lock = lock
-        cls.sending_msg = sending_msg
-        cls.priority_rec_db = priority_rec_db
-        cls.secondary_res_db = secondary_res_db
-        cls.vk_session = VkApi(token=cfg.get("vk", "token"))
-        longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
-        print('vk bot started!')
-        cls.listen_events(longpoll, n_msg=n_msg)
-
-    @classmethod
-    def listen_events(cls, longpoll, n_msg=None):
-        while cls.run:
-            try:
+            while cls.run:
                 for ev in longpoll.listen():
-                    cls.processing_event(ev, n_msg=n_msg)
-                cls.sending_msg_queue_processing()
-            except Exception as e:
-                print("произошла неизвестная ошибка в классе", cls.__name__, e)
+                    cls.processing_event(ev, **kwargs)
+        except Exception as e:
+            print("произошла неизвестная ошибка в классе", cls.__name__, '(listen_events):', e)
+        return cls.listen_events
 
     @classmethod
-    def processing_event(cls, event, n_msg=None):
-        print('something event', event)
+    def processing_event(cls, event, **kwargs):
+        # print('something event', event)
         if event.type == VkBotEventType.MESSAGE_NEW:
-            print('новое сообщение', type(event.raw), event.raw)
-            if not cls.obj_dict.get(event.object.peer_id):
-                cls.obj_dict[event.object.peer_id] = cls()
-            print('d1')
             if WorkWithMessenges.qu_ans_test(event.object.text):
-                print('d2')
-
-                cls.sending_msg.put('func',
-                                    [cls.send_msg,
-                                     [WorkWithMessenges.random_answ()],
-                                     cls.generate_answ_dict(event.raw)])
+                kwargs['sending_msg'].put(('func',
+                                           [cls.send_msg,
+                                            [WorkWithMessenges.random_answ()],
+                                            cls.generate_answ_dict(event.raw)]))
             else:
-                print('d3')
-
                 event_d = dict(event.raw)
-                print('d3 5')
                 event_d.update({'callback_func': cls.send_msg,
                                 "args": [],
-                                "kwargs": cls.generate_answ_dict(event_d)
-                                })
-                print('d3 6')
-                n_msg.put(event_d)
-                print('d3 7')
-                if not cls.processing_event_live:  # если обработка не запущена
-                    print('d4')
+                                "kwargs": cls.generate_answ_dict(event_d)})
 
-                    cls.processing_event_live = True
-                    cls.processong_msg_class_start(n_msg)
+                kwargs['n_msg'].put(event_d)
+                cls.processong_msg_class_start(**kwargs)
 
     # ==========! work with other classes !==========
     @classmethod
-    def processong_msg_class_start(cls, n_msg):
-        cls.pool.apply_async(WorkWithMessenges.start,
-                             args=(n_msg, cls.pool, cls.sending_msg,
-                                   cls.priority_rec_db,
-                                   cls.secondary_res_db),
-                             callback=cls.processing_event_is_live
-                             )
+    def processong_msg_class_start(cls, **kwargs):
+        kwargs['turn_on_proc'].put((WorkWithMessenges.start, dict()))  # {'kwds': 'kwargs'}
+        # print('запуск WorkWithMessenges.start')
+
+    # !!! часть класса, отвечающая за отправку сообщений !!!
+    @classmethod
+    def start(cls, **kwargs):
+        try:
+            cls.run = True
+            cls.vk_session = VkApi(token=cfg.get("vk", "token"))
+            kwargs['turn_on_proc'].put((cls.listen_events, dict()))
+            cls.sending_msg_queue_processing(**kwargs)
+        except Exception as e:
+            print('произошла какая-то ошибка в клсаае', cls.__name__, '(start):', e)
+        return cls.start
 
     # ==========! send msg !==========
     @classmethod
-    def generate_answ_dict(cls, _dict: dict):
-        print('d 3 5 1')
+    def generate_answ_dict(cls, _dict: dict, func=lambda i: True):
         nested_dict = []
-        standart_d = {key: ((val, nested_dict.append(key))[0] if type(val) == dict else val)
-                      for key, val in _dict.items() if key in list_keys}
-        print('d 3 5 2')
-
+        standart_d = {key: val for key, val in _dict.items()
+                      if not(type(val) == dict and nested_dict.append(key)) and key in list_keys and func(val)}
+        print('standart_d', standart_d)
         [standart_d.update(cls.generate_answ_dict(_dict[key])) for key in nested_dict]
-        print('d 3 5 3')
+        print('standart_d', standart_d)
         return standart_d
 
     @classmethod
-    def sending_msg_queue_processing(cls):
-        if not cls.sending_msg.empty():
-            _type, material = cls.sending_msg.get()
-            if _type == 'func':
-                func, args, kwargs = material
-                func(*args, **kwargs)
+    def sending_msg_queue_processing(cls, **kwargs_f):
+        while True:
+            #print('-sending_msg_queue_processing')
+            if not kwargs_f['sending_msg'].empty():
+                print('---------------new msg get!!!!!!!')
+                _type, material = kwargs_f['sending_msg'].get()
+                if _type == 'func':
+                    func, args, kwargs = material
+                    print('\nkwargs in sending_msg_queue_processing', kwargs, '\n')
+                    if kwargs.get('peer_id', None):
+                        print(' kwargs.get(peer_id) существует')
+                        if not cls.obj_dict.get(kwargs.get('peer_id')):
+                            print('сейчас будет внесение нового класса вк бота в словарь')
+                            cls.obj_dict[kwargs.get('peer_id')] = cls()
+                    kwargs.pop('callback_func', None)
+                    print('запуск пришедшей функции', func, args, kwargs)
+                    func(*args, **kwargs)
 
     @classmethod
     def send_msg(cls, text, *args, **kwargs):
+        print('send msg started')
         msg = cls.constructor_msg(text, **kwargs)
+        print('d1 --- ')
+        msg = cls.generate_answ_dict(msg, func=lambda i: type(i) != dict)
+        print('\nсообщение отправляется', msg, '\n')
+        cls.vk_session.method("messages.send", msg)
+        print('\n\t\t\tСообщение отправлено!!!', msg, '\n')
 
     @classmethod
     def constructor_msg(cls, text, **kwargs):
+        if type(text) == list:
+            text = ' '.join(text)
         if type(text) != str:
-            if type(text) == list:
-                text = ' '.join(text)
-            elif type(text) == dict:
-                text = ' '.join(text.keys())
-            else:
-                text = str(text)
-            text = re_sub(r'(\s{1,})[.,!:;]', '', text)
-
+            text = str(text)
+        text = re_sub(r'(\s{1,})[.,!:;]', '', text)
+        print('8878787878787')
         # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
-        kwargs.update(cls.obj_dict.get(kwargs.get('peer_id', ''), dict()))
+        if kwargs.get('peer_id', None) and  cls.obj_dict.get(kwargs.get('peer_id')):
+            kwargs.update(cls.obj_dict[kwargs['peer_id']].unical_dict)
         kwargs.update({"message": text,
                        'random_id': randint(1, 2147483647),
                        })
@@ -152,7 +149,6 @@ class VkBot():
 
 class WorkWithMessenges():
     run = False
-    pool = None
     sending_msg = None
     secondary_res_db = priority_rec_db = None
     qu_ans_test = lambda text: text[:4] in ['бот,', "Бот,"] and text[-1] == '?'
@@ -160,57 +156,48 @@ class WorkWithMessenges():
     working_with_bd_pros_live = False
 
     @classmethod
-    def working_with_bd_live(cls, *args):
-        cls.working_with_bd_pros_live = False
+    def work_db_start(cls, **kwargs):
+        kwargs['turn_on_proc'].put((DbControl.start, dict()))  # {'kwds': kwargs}
 
     @classmethod
-    def work_db_start(cls):
-        cls.pool.apply_async(DbControl.start,
-                             args=(cls.priority_rec_db,
-                                   cls.secondary_res_db,
-                                   cls.sending_msg),
-                             callback=cls.working_with_bd_live
-                             )
-
-    @classmethod
-    def start(cls, n_msg, pool, sending_msg,
-              priority_rec_db, secondary_res_db):  # , n_msg=None
+    def start(cls, *args, **kwargs):  # , n_msg=None
         try:
             print('class', cls.__name__, "started")
             cls.run = True
             cls.working_with_bd_pros_live = False
-            cls.pool = pool
-            cls.sending_msg = sending_msg
-            cls.priority_rec_db = priority_rec_db
-            cls.secondary_res_db = secondary_res_db
-            cls.working_cls(n_msg=n_msg)
+            cls.sending_msg = kwargs['sending_msg']
+            cls.priority_rec_db = kwargs['priority_rec_db']
+            cls.secondary_res_db = kwargs['secondary_res_db']
+            cls.working_cls(**kwargs)
         except Exception as e:
             print('произошла какая-то ошибка при старте класса', cls.__name__, e)
+        return cls.start
 
     @classmethod
-    def working_cls(cls, n_msg=None):
+    def working_cls(cls, **kwargs):
         while cls.run:
             try:
-                cls.new_msg_queue_cheching(n_msg=n_msg)
+                cls.new_msg_queue_cheching(**kwargs)
             except Exception as e:
                 print('произошла неизвестная ошибка в', cls.__name__, ":", e)
         print('class', cls.__name__, "end working")
 
     @classmethod
-    def new_msg_queue_cheching(cls, n_msg=None):
-        if not n_msg.empty():
-            cls.processing_msg(n_msg.get())
+    def new_msg_queue_cheching(cls, **kwargs):
+        if not kwargs['n_msg'].empty():
+            cls.processing_msg(kwargs['n_msg'].get(), **kwargs)
         else:
             cls.run = False
 
     @classmethod
-    def processing_msg(cls, event):
-        print('пришло сообщение с текстом:', event)
+    def processing_msg(cls, event, **f_kwargs):
+        # print('пришло сообщение с текстом:', event)
         if type(event) == dict:
             text = event['object']['text']
             chat_id = event['object']['peer_id']
             callback_func = event['callback_func']
-            args, kwargs = event['args'], event['kwargs']
+            args, kwargs = event.pop('args', {}), event.pop('kwargs', {})
+            kwargs.update(event)
             type_com = 'new_words' if text not in COMANDS else text
 
             # по идее, это обрабатывается в классе бота, и не имеет смысла тут, но пусть будет
@@ -219,6 +206,8 @@ class WorkWithMessenges():
                 (cls.priority_rec_db if type_com in HIGH_PRIORITY_SIGNAL
                  else cls.secondary_res_db).put((type_com, [chat_id,
                                                             [callback_func, args, kwargs]]))
+                cls.work_db_start(**f_kwargs)
+                # print('сообщение отправлено к бд')
             elif type_com in ["ask_bot"]:
                 cls.question_ans(callback_func, *args, **kwargs)  # сразу отправляем в вк
             elif type_com in ['new_words']:
@@ -226,12 +215,15 @@ class WorkWithMessenges():
                 #                                  {word: {val: count, ...}, ...}]]), ...]
                 (cls.priority_rec_db if type_com in HIGH_PRIORITY_SIGNAL
                  else cls.secondary_res_db).put((type_com, [chat_id, cls.edit_msd_text(text)]))
+                cls.work_db_start(**f_kwargs)
+            #     print('сообщение отправлено к бд - 2')
+            # print('сообщение обработано и отправлено по очередям')
 
     @classmethod
     def question_ans(cls, callback_func, *args, **kwargs):
-        cls.sending_msg(('func', [callback_func,
-                                  [cls.random_answ()] + args,
-                                  kwargs]))
+        kwargs['sending_msg'].put(('func', [callback_func,
+                                            [cls.random_answ()] + args,
+                                            kwargs]))
 
     @classmethod
     def edit_msd_text(cls, text):
@@ -240,7 +232,7 @@ class WorkWithMessenges():
         _dict = dict()
         start_w_dict = dict()
         for part in (part.split() for part in
-                           iter(re_split(r'[.!?]()', re_sub(r'[^.,!:;? ]()[.,!:?;]', ' ', text.lower())))
+                     iter(re_split(r'[.!?]()', re_sub(r'[^.,!:;? ]()[.,!:?;]', ' ', text.lower())))
                      if len(part.split()) > 1):
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
