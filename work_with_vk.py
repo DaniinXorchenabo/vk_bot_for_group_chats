@@ -232,10 +232,14 @@ class WorkWithMessenges():
         _dict = dict()
         start_w_dict = dict()
         for part in (part.split() for part in
-                     iter(re_split(r'[.!?]()', re_sub(r'[^.,!:;? ]()[.,!:?;]', ' ', text.lower())))
-                     if len(part.split()) > 1):
+                     iter(re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})',
+                                 r'\1 \2 \3#@*`~',
+                                 text.lower()).split('#@*`~')) if len(part.split()) > 0):
+            print(part)
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
             start_w_dict[part[0]] = start_w_dict.get(part[0], Counter()) + Counter({part[1]: 1})
             _dict[part[-1]] = start_w_dict.get(part[-1], Counter())
+        print('start_w_dict', start_w_dict)
+        print("_dict", _dict)
         return [start_w_dict, _dict]
