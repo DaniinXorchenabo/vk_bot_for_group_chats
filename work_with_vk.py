@@ -104,7 +104,7 @@ class VkBotSending(VkBotBase):
             text = ' '.join(text)
         if type(text) != str:
             text = str(text)
-        text = re_sub(r'(\s{1,})[.,!:;]', '', text)
+        text = re_sub(r'(\s{1,})([.,!:;])', r'\2', text)
         if kwargs.get('peer_id', None) and cls.obj_dict.get(kwargs.get('peer_id')):
             # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
             kwargs.update(cls.obj_dict[kwargs['peer_id']].own_dict)
@@ -189,14 +189,18 @@ class WorkWithMessenges():
         start_w_dict = dict()
         for part in (part.split() for part in
                      iter(re_sub(r'()([.!?\n]{1,})',
-                                 r'\1 \2 #@*`~', re_sub(r'([^.,!:;?«» ])()([.,!:?;«»\n]{1,})', r'\1 \2 \3',
-                                                        text.lower())).split('#@*`~')) if len(part.split()) > 0):
+                                 r'\1 \2 #@*`~', re_sub(r'([^.,!:;? ])()([.,!:?;\n]{1,})', r'\1 \2 \3',
+                                                        re_sub(r'''[«»{}\][()"'*#$^~`]''', '', text.lower()))).split('#@*`~'))
+                                                                    if len(part.split()) > 0):
             if len(part) == 1:
                 part += ['.']
+            # print(part)
             for i in range(1, len(part) - 1):
                 _dict[part[i]] = _dict.get(part[i], Counter()) + Counter({part[i + 1]: 1})
             start_w_dict[part[0]] = start_w_dict.get(part[0], Counter()) + Counter({part[1]: 1})
             _dict[part[-1]] = start_w_dict.get(part[-1], Counter())
+        # print(start_w_dict)
+        # print(_dict)
         return [start_w_dict, _dict]
 
     # выбор очереди по приоритету

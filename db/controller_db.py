@@ -80,6 +80,7 @@ class DbControl():
                 Chat(id=id_chat)
                 # flush()
             ans = 'Я не могу писать, если не знаю слов :c'
+        # print(ans)
         kwargs['sending_msg'].put(('func', [callback_func, [ans] + m_args, m_kwargs]))
 
     @classmethod
