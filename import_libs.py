@@ -19,14 +19,14 @@ from multiprocessing import AuthenticationError
 
 processes_count = cpu_count()
 
-import nltk
-# nltk.download('punkt')
-import pymorphy2
-
-# probability score threshold
-prob_thresh = 0.4
-
-morph = pymorphy2.MorphAnalyzer()
+# import nltk
+# # nltk.download('punkt')
+# import pymorphy2
+#
+# # probability score threshold
+# prob_thresh = 0.4
+#
+# morph = pymorphy2.MorphAnalyzer()
 
 text = """
 0989189960. Привет вам от Светланы. Ура

@@ -51,8 +51,13 @@ class VkBotListen(VkBotBase):
 
 
 class VkBotSending(VkBotBase):
-    obj_dict = dict()  # dict(id_chat: VkBotSending)
+    from nltk import word_tokenize as nltk_w_tok
+    # nltk.download('punkt')
+    import pymorphy2
+    prob_thresh = 0.4
+    morph = None
 
+    obj_dict = dict()  # dict(id_chat: VkBotSending)
 
     # @classmethod
     # def start(cls, *args, **kwargs):
@@ -62,6 +67,7 @@ class VkBotSending(VkBotBase):
     def child_class_start(cls, *args, **kwds_f):
         kwds_f['turn_on_proc'].put((VkBotListen.start, dict()))
         cls.TEXT_HELP_COMMANDS = cls.get_help_command()
+        cls.morph = cls.pymorphy2.MorphAnalyzer()
         cls.sending_msg_queue_processing(**kwds_f)
 
     # ==========! send msg !==========
@@ -100,11 +106,23 @@ class VkBotSending(VkBotBase):
 
     @classmethod
     def constructor_msg(cls, text, **kwargs):
-        if type(text) == list:
-            text = ' '.join(text)
-        if type(text) != str:
-            text = str(text)
-        text = re_sub(r'(\s{1,})([.,!:;])', r'\2', text)
+        return cls.correcting_msg_dict(cls.correcting_msg_text(text), **kwargs)
+
+    @classmethod
+    def correcting_msg_text(cls, text):
+        if type(text) != list:
+            if type(text) == str:
+                text = cls.nltk_w_tok(text)
+            elif type(text) == dict:
+                text = text.keys()
+            else:
+                text = list(text)
+        return re_sub(r'(\s{1,})([.,!:;])', r'\2', ' '.join([(word.title() if bool(list(
+            filter(lambda p: p.score > cls.prob_thresh and ('Name' in p.tag or 'Sgtm' in p.tag or "Geox" in p.tag),
+                   cls.morph.parse(word)))) or ind == 0 else word) for ind, word in enumerate(text)]))
+
+    @classmethod
+    def correcting_msg_dict(cls, text, **kwargs):
         if kwargs.get('peer_id', None) and cls.obj_dict.get(kwargs.get('peer_id')):
             # характеристики сообщений чата, присущие только ему (к примеру, клавиатура)
             kwargs.update(cls.obj_dict[kwargs['peer_id']].own_dict)
@@ -190,8 +208,9 @@ class WorkWithMessenges():
         for part in (part.split() for part in
                      iter(re_sub(r'()([.!?\n]{1,})',
                                  r'\1 \2 #@*`~', re_sub(r'([^.,!:;? ])()([.,!:?;\n]{1,})', r'\1 \2 \3',
-                                                        re_sub(r'''[«»{}\][()"'*#$^~`]''', '', text.lower()))).split('#@*`~'))
-                                                                    if len(part.split()) > 0):
+                                                        re_sub(r'''[«»{}\][()"'*#$^~`]''', '', text.lower()))).split(
+                         '#@*`~'))
+                     if len(part.split()) > 0):
             if len(part) == 1:
                 part += ['.']
             # print(part)
