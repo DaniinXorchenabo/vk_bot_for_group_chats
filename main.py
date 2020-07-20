@@ -1,4 +1,4 @@
-from work_with_vk import *
+
 
 
 by_ended_process = set()  # список неактивных процессов
@@ -19,6 +19,9 @@ def error_callback_func(*args, **kwargs):
 
 
 if __name__ == '__main__':
+    from work_with_vk import *
+
+
     print("Number of cpu : ", cpu_count(), print(ctime()))
     pool = Pool(processes=processes_count)
     new_msg = Manager().Queue()  # [dict(), ...]  тексты сообщений из бота в обработку
@@ -48,9 +51,9 @@ if __name__ == '__main__':
                             'callback': callback_func,
                             'error_callback': error_callback_func}
 
-    res = pool.apply_async(VkBot.start, **data_for_apply_async)
+    res = pool.apply_async(VkBotSending.start, **data_for_apply_async)
     res.ready()
-    by_ended_process = {WorkWithMessenges.start, DbControl.start, VkBot.listen_events}  # список неактивных процессов
+    by_ended_process = {WorkWithMessenges.start, DbControl.start, VkBotListen.start}  # список неактивных процессов
     while True:
         try:
             if not turn_on_process_please.empty():
@@ -68,6 +71,7 @@ if __name__ == '__main__':
                     # ибо вложенные словари в _dict и в kw_param - одинаковые)
                     _dict.update(kw_param)
                     # print('сейчас процесс', obj_call, "будет запущен")
+                    # print(obj_call, _dict)
                     res_o = pool.apply_async(obj_call, **_dict)
                     # print('процесс', obj_call, "был запущен")
                     by_ended_process.remove(obj_call)

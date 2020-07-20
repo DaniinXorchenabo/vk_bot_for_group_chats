@@ -19,26 +19,24 @@ class VkBotListen(VkBotBase):
             отправка сообщений пользователю"""
 
     # !!! часть класса, отвечающая за прием события !!!
-    @classmethod
-    def listen_events(cls, longpoll=None, vk_session=None, **kwargs):
-        try:
-            print('listen_events vkBot started !')
-            cls.obj_dict = None  # для части класса, работающей в этом потоке не используется
-            cls.run = True
-            if not cls.vk_session:
-                cls.vk_session = VkApi(token=cfg.get("vk", "token"))
-            longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
+    # @classmethod
+    # def start(cls, *args, **kwargs):
+    #     print(kwargs)
+    #     return super().start_base(cls.child_class_start, *args, **kwargs)
 
-            while cls.run:
-                for ev in longpoll.listen():
-                    cls.processing_event(ev, **kwargs)
-        except Exception as e:
-            print("произошла неизвестная ошибка в классе", cls.__name__, '(listen_events):', e)
-        return cls.listen_events
+    @classmethod
+    def child_class_start(cls, *args, **kwargs):
+        longpoll = VkBotLongPoll(cls.vk_session, group_id=cfg.get("vk", "group"))
+        cls.listen_events(longpoll=longpoll, **kwargs)
+
+    @classmethod
+    def listen_events(cls, longpoll=None, **kwargs):
+        while cls.run:
+            for ev in longpoll.listen():
+                cls.processing_event(ev, **kwargs)
 
     @classmethod
     def processing_event(cls, event, **kwargs):
-        # print('something event', event)
         if event.type == VkBotEventType.MESSAGE_NEW:
             text = event.object.text
             if event.object.text in cls.DBLESS_COMMANDS:
@@ -49,15 +47,20 @@ class VkBotListen(VkBotBase):
                 event_d = dict(event.raw)
                 event_d.update({'callback_func': VkBotSending.send_msg, "args": [], "kwargs": event_d})
                 kwargs['n_msg'].put(event_d)
-                cls.processong_msg_class_start(**kwargs)
+                cls.processong_msg_class_start(WorkWithMessenges.start, **kwargs)
 
 
 class VkBotSending(VkBotBase):
     obj_dict = dict()  # dict(id_chat: VkBotSending)
 
+
+    # @classmethod
+    # def start(cls, *args, **kwargs):
+    #     return super().start_base(cls.child_class_start, *args, **kwargs)
+
     @classmethod
     def child_class_start(cls, *args, **kwds_f):
-        kwds_f['turn_on_proc'].put((VkBotListen.start(), dict()))
+        kwds_f['turn_on_proc'].put((VkBotListen.start, dict()))
         cls.TEXT_HELP_COMMANDS = cls.get_help_command()
         cls.sending_msg_queue_processing(**kwds_f)
 
